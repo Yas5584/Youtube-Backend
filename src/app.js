@@ -19,10 +19,12 @@ app.use(cookieParser()) //for parsing cookies
 // Routes import 
 
 import userRouter from "./routes/user.routes.js"
-import router from './routes/user.routes.js';
+// import loginRouter from "./routes/user.routes.js";
+
 
 
 app.use("/api/v1/users",userRouter)
+// app.use("/api/v1/users",loginRouter)
 
 
 

@@ -10,12 +10,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Yas5584/Custom-Youtube-App.git"
+    "url": "git+https://github.com/Yas5584/Youtube-Backend.git"
   },
   "author": "",
   "license": "ISC",
   "bugs": {},
-  "homepage": "https://github.com/Yas5584/Custom-Youtube-App#readme",
+  "homepage": "https://github.com/Yas5584/Youtube-Backend#readme",
   "dependencies": {
     "@types/jsonwebtoken": "^9.0.10",
     "bcrypt": "^6.0.0",

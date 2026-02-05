@@ -4,6 +4,7 @@ import { User } from "../models/user.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
+import mongoose from "mongoose"
 import { cookiesResponse } from "../utils/cookieResponse.js";
 const generateAccessAndRefereshTokens = async(userId) =>{
     try {
@@ -272,8 +273,8 @@ const logoutUser=asyncHandler(async(req,res)=>{
         req.user._id,//Which to update
         // What to update
     {
-        $set:{
-        refreshTokens:undefined 
+        $unset:{
+        refreshTokens:1
         }
     },
     {
@@ -353,8 +354,9 @@ try {
 )
 
 const changecurrentPassword=asyncHandler(async(req,res)=>{
-
+    console.log(req.body)
     const {oldPassword,newPassword}=req.body;
+    
 
     if (!oldPassword || !newPassword){
         throw new ApiError(400,"old password and new password required")
@@ -405,6 +407,8 @@ const updateAccountDetails=asyncHandler(async(req,res)=>{
         }
         ,{ new:true}
      ).select("-password")
+
+     console.log(user)
    
 
      return res
@@ -417,6 +421,9 @@ const updateAccountDetails=asyncHandler(async(req,res)=>{
 const updateUserAvatar = asyncHandler(async(req,res)=>{
 
     const avatarLocalPath=req.file?.path;
+   console.log('====================================');
+   console.log(avatarLocalPath);
+   console.log('====================================');
 
     if (!avatarLocalPath){
         throw new ApiError(400,"Avatar file is required")
@@ -498,8 +505,8 @@ const getUserChannelProfile=asyncHandler(async(req,res)=>{
         {
             $lookup:{
                  from:"subscriptions",
-                 localFeild:"_id",
-                 foreignFeild:"channel",
+                 localField:"_id",
+                 foreignField:"channel",
                  as:"subscribers"
 
             }
@@ -508,13 +515,13 @@ const getUserChannelProfile=asyncHandler(async(req,res)=>{
         {
             $lookup:{
                 from:"subscriptions",
-                localFeild:"_id",
-                foreignFeild:"subscriber",
+                localField:"_id",
+                foreignField:"subscriber",
                 as:"subscribedTo"
             }
         },
         {
-            $addFeilds:{
+            $addFields:{
                 subscribersCount:{
                     $size:"$subscribers"
                 }
@@ -578,21 +585,21 @@ const getUserWatchHistory=asyncHandler(async(req,res)=>{
             {
                 $match:{
                     // _id:req.user?._id  is wronng here because mongodb store _id:object(64)(1232.......)
-                    _id:mongoose.Types.ObjectId(req.user?._id)
+                    _id:new mongoose.Types.ObjectId(req.user?._id)
                 }
             },
             {
                 $lookup:{
                     from:"videos",
-                    localFeild:"watchHistory",
-                    foreginFeild:"_id",
+                    localField:"watchHistory",
+                    foreignField:"_id",
                     as:"watchedVideos",
                     pipeline:[
                         {
                             $lookup:{
                                 from:"users",
-                                localFeild:"owner",
-                                foreginFeild:"_id",
+                                localField:"owner",
+                                foreignField:"_id",
                                 as:"owner",
 
                                 pipeline:[

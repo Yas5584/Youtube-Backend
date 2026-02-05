@@ -414,7 +414,222 @@ const updateAccountDetails=asyncHandler(async(req,res)=>{
 }
 )
 
+const updateUserAvatar = asyncHandler(async(req,res)=>{
 
+    const avatarLocalPath=req.file?.path;
+
+    if (!avatarLocalPath){
+        throw new ApiError(400,"Avatar file is required")
+    }
+    
+
+    const avatar=await uploadOnCloudinary(avatarLocalPath)
+
+    if (!avatar.url){
+        throw new ApiError(400,"Error while uploading avatar")
+    }
+
+    const user=await User.findByIdAndUpdate(req.user?._id,
+        {
+            $set:{
+                avatar:avatar.url
+            }
+        },
+        {new:true}
+    ).select("-password")
+   
+    await user.save({validateBeforeSave:false})
+    
+
+    return res
+           .status(200)
+           .json(new ApiResponse(200,"avatar file updated successfully"))
+
+
+})
+
+
+const updateUserCoverImage=asyncHandler(async(req,res)=>{
+
+   const coverImageLocalPath=req.file?.path
+
+   if (!coverImageLocalPath){
+
+    throw new ApiError(400,"cover image is required")
+
+   }
+
+   const coverImage=await uploadOnCloudinary(coverImageLocalPath)
+
+   if(!coverImage.url){
+    throw new ApiError(400,"Error while uploading coverimage")
+   }
+   
+
+   const user=await User.findByIdAndUpdate(req.user?._id,
+    {
+        $set:{
+            coverImage:coverImage.url
+        }
+    }
+   ).select("-password")
+
+
+    return res
+           .status(200)
+           .json(new ApiResponse(200,"cover image updated successfully"))
+           
+
+
+
+})
+const getUserChannelProfile=asyncHandler(async(req,res)=>{
+
+    const {userName}=req.params;
+
+    const channel=await User.aggregate([
+        {
+            $match:{
+                userName:userName.toLowerCase(),
+
+            }
+
+        },
+        {
+            $lookup:{
+                 from:"subscriptions",
+                 localFeild:"_id",
+                 foreignFeild:"channel",
+                 as:"subscribers"
+
+            }
+
+        },
+        {
+            $lookup:{
+                from:"subscriptions",
+                localFeild:"_id",
+                foreignFeild:"subscriber",
+                as:"subscribedTo"
+            }
+        },
+        {
+            $addFeilds:{
+                subscribersCount:{
+                    $size:"$subscribers"
+                }
+                ,
+                channelsSubscribedCount:{
+                    $size:"$subscribedTo"
+                },
+                // check if the logged in user is subscribed to this channel
+                isSubscribed:{
+                    $cond:{
+                        if :{$in:[req.user?._id,"$subscribers.subscriber"]},
+                        then:true,
+                        else:false
+
+                    
+                    }
+                }
+            }
+        }
+        ,
+        {
+            $project:{
+
+                userName:1,
+                fullName:1,
+                subscribersCount:1,
+                channelsSubscribedCount:1,
+                isSubscribed:1,
+                avatar:1,
+                coverImge:1,
+                email:1,
+
+
+
+
+            }
+        }
+        
+    ])
+  
+
+
+
+if (!channel?.length){
+    throw new ApiError(404,"Channel not found")
+}
+console.log(channel)
+return res.
+status(200)
+.json(new ApiResponse(200,channel[0],"Channel profile fetched successfully"))
+
+
+
+
+})
+
+const getUserWatchHistory=asyncHandler(async(req,res)=>{
+
+    const user=await User.aggregate(
+        [
+            {
+                $match:{
+                    // _id:req.user?._id  is wronng here because mongodb store _id:object(64)(1232.......)
+                    _id:mongoose.Types.ObjectId(req.user?._id)
+                }
+            },
+            {
+                $lookup:{
+                    from:"videos",
+                    localFeild:"watchHistory",
+                    foreginFeild:"_id",
+                    as:"watchedVideos",
+                    pipeline:[
+                        {
+                            $lookup:{
+                                from:"users",
+                                localFeild:"owner",
+                                foreginFeild:"_id",
+                                as:"owner",
+
+                                pipeline:[
+                           {
+                            $project:{
+                                userName:1,
+                                fullName:1,
+                                avatar:1,
+                                watchedVideos:1,
+                                ownerDetails:1
+                            }},
+                            {
+                                $addFields:{
+                                    owner:{
+                                        $first:"$owner"
+                                    }
+                                }
+                            }
+                        
+                                ]
+                            }
+                        },
+
+
+
+                    ]
+                }
+            }
+        ]
+    )
+
+
+    return res
+              .status(200)
+              .json(new ApiResponse(200,"",user[0].watchedVideos))
+
+})
 
 export {registerUser,
         loginUser,
@@ -422,8 +637,13 @@ export {registerUser,
         refreshAccessTokens,
         changecurrentPassword,
         getCurrentUser,
+        updateAccountDetails,
+        updateUserAvatar,
 
-    
+        updateUserCoverImage,
+        getUserChannelProfile,
+        getUserWatchHistory
+
     }
 
 
